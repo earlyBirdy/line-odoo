@@ -22,7 +22,7 @@ CONV_TTL = int(os.getenv("CONV_TTL_SECONDS", "86400"))
 ODOO_CALLBACK_SECRET = os.getenv("ODOO_CALLBACK_SECRET", "CHANGE_ME")
 
 rds = Redis.from_url(REDIS_URL, decode_responses=True)
-app = FastAPI(title="LINE Pickup → Odoo", version="0.1.2-mvp")
+app = FastAPI(title="LINE Pickup → Odoo", version="0.1.3-mvp")
 
 def verify_sig(body: bytes, sig: str) -> bool:
     if not LINE_CHANNEL_SECRET:
@@ -101,10 +101,56 @@ def try_dt(s: str) -> Optional[str]:
 def contact_message() -> list[Dict[str, Any]]:
     # TODO: replace with real hotline / working hours / URL
     return [{"type": "text", "text": "客服聯絡方式：\n電話：02-xxxx-xxxx\n服務時間：週一至週五 09:00-18:00"}]
+def fmt_dt(s: Optional[str]) -> str:
+    if not s:
+        return "-"
+    # Odoo returns "YYYY-MM-DD HH:MM:SS"
+    try:
+        return datetime.strptime(s, "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %H:%M")
+    except Exception:
+        return s
 
-def my_pickups_placeholder() -> list[Dict[str, Any]]:
-    # TODO (Phase 2): query Odoo by line_user_id and render list (Flex message)
-    return [{"type": "text", "text": "（第二期功能）我的取貨查詢尚未開放。"}]
+def my_pickups_message(line_user_id: str) -> list[Dict[str, Any]]:
+    """List recent pickup requests for this LINE user."""
+    try:
+        uid_odoo = odoo_auth()
+        rows = odoo_search_read(
+            uid_odoo,
+            domain=[["line_user_id", "=", line_user_id]],
+            fields=["name", "state", "preferred_time", "pickup_address", "create_date"],
+            limit=5,
+            order="create_date desc",
+        )
+    except Exception:
+        return [{"type": "text", "text": "目前無法查詢您的取貨紀錄，請稍後再試或聯絡客服。"}]
+
+    if not rows:
+        return [{"type": "text", "text": "目前查無您的取貨需求紀錄。若要安排取貨，請點選【安排取貨】。"}]
+
+    # Map state to user-friendly text
+    state_map = {
+        "new": "已送出",
+        "contacted": "已聯絡",
+        "scheduled": "已安排",
+        "done": "已完成",
+        "cancel": "已取消",
+    }
+
+    lines = ["📦 您最近的取貨需求（最新 5 筆）："]
+    for r in rows:
+        nm = r.get("name", "-")
+        st = state_map.get(r.get("state"), r.get("state") or "-")
+        t = fmt_dt(r.get("preferred_time"))
+        addr = (r.get("pickup_address") or "-")
+        if len(addr) > 18:
+            addr = addr[:18] + "…"
+        lines.append(f"• {nm}｜{st}｜{t}｜{addr}")
+
+    lines.append("\n如需修改/取消，請聯絡客服協助。")
+    return [{"type": "text", "text": "\n".join(lines)}]
+
+
+
 
 def start(uid: str) -> list[Dict[str, Any]]:
     conv_set(uid, {"step": "address", "data": {}})
@@ -183,7 +229,7 @@ def handle_text(uid: str, text: str) -> list[Dict[str, Any]]:
 
 @app.get("/health")
 def health():
-    return {"ok": True, "version": "0.1.2-mvp"}
+    return {"ok": True, "version": "0.1.3-mvp"}
 
 
 @app.get("/line/health")
