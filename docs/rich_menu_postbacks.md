@@ -40,7 +40,7 @@ Backend (FastAPI) 會提供：
 ## 4) Postback Data 規格
 - `action=pickup_start` → 啟動「安排取貨」對話流程
 - `action=contact` → 顯示客服資訊（可選）
-- `action=my_pickups` → 顯示我的取貨（第二期）
+- `action=my_pickups` → 顯示我的取貨（已支援查詢最近 5 筆）
 
 
 ## Nginx 防爆量（已內建）

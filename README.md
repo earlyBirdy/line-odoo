@@ -24,3 +24,13 @@ docker compose up -d --build
 - Set in LINE Developers Console:
   - `https://<YOUR_DOMAIN>/line/webhook`
 - Backend supports both `/webhook` and `/line/webhook` (alias), so Nginx may rewrite or not.
+
+
+## Rich Menu actions
+- `action=pickup_start` (MVP)
+- `action=contact` (stub)
+- `action=my_pickups` (lists latest 5)
+
+
+## Nginx rate limit
+- `/line/webhook` 已加上 rate limit（10 req/sec per IP, burst 20）。
