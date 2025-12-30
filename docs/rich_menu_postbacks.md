@@ -1,4 +1,4 @@
-# LINE Rich Menu Postbacks + Webhook Routing
+# LINE Rich Menu Postbacks + Webhook Routing (MVP)
 
 這份文件讓「LINE OA 設定」與「Backend Router」一致，避免上線時路徑對不上。
 
@@ -16,7 +16,7 @@
 >   - `/webhook`
 >   - `/line/webhook`
 
-## 2) Rich Menu 按鈕設定
+## 2) Rich Menu 按鈕設定（MVP）
 
 ### 「安排取貨」
 - Type: **Postback**
@@ -50,3 +50,9 @@ Backend (FastAPI) 會提供：
 ## 我的取貨（Flex Message）
 - `action=my_pickups` 會回傳 Flex carousel（最多 5 筆）。
 - 範例 payload：`docs/flex_my_pickups_example.json`
+
+
+## 詳情/取消/改期（由清單卡片觸發）
+- `action=pickup_detail&id=<odoo_id>`：顯示單筆詳情（Flex）
+- `action=pickup_reschedule&id=<odoo_id>`：引導使用者輸入改期/補充（MVP 文字）
+- `action=pickup_cancel&id=<odoo_id>`：引導使用者輸入取消原因（MVP 文字）
