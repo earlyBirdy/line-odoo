@@ -1,4 +1,4 @@
-# LINE Rich Menu Postbacks + Webhook Routing (MVP)
+# LINE Rich Menu Postbacks + Webhook Routing
 
 這份文件讓「LINE OA 設定」與「Backend Router」一致，避免上線時路徑對不上。
 
@@ -16,7 +16,7 @@
 >   - `/webhook`
 >   - `/line/webhook`
 
-## 2) Rich Menu 按鈕設定（MVP）
+## 2) Rich Menu 按鈕設定
 
 ### 「安排取貨」
 - Type: **Postback**
