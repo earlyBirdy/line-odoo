@@ -1,4 +1,4 @@
-## Odoo model: waste.pickup.request
+## Odoo model: waste.pickup.request (MVP)
 - source (line/manual)
 - line_user_id
 - pickup_address
