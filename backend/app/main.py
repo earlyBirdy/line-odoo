@@ -22,7 +22,7 @@ CONV_TTL = int(os.getenv("CONV_TTL_SECONDS", "86400"))
 ODOO_CALLBACK_SECRET = os.getenv("ODOO_CALLBACK_SECRET", "CHANGE_ME")
 
 rds = Redis.from_url(REDIS_URL, decode_responses=True)
-app = FastAPI(title="LINE Pickup → Odoo", version="0.1.3-mvp")
+app = FastAPI(title="LINE Pickup → Odoo", version="0.1.4-mvp")
 
 def verify_sig(body: bytes, sig: str) -> bool:
     if not LINE_CHANNEL_SECRET:
@@ -100,7 +100,7 @@ def try_dt(s: str) -> Optional[str]:
 
 def contact_message() -> list[Dict[str, Any]]:
     # TODO: replace with real hotline / working hours / URL
-    return [{"type": "text", "text": "客服聯絡方式：\n電話：02-xxxx-xxxx\n服務時間：週一至週五 09:00-18:00"}]
+    return [{"type": "text", "text": "客服聯絡方式：\n電話：（請填寫）\n服務時間：（請填寫）"}]
 def fmt_dt(s: Optional[str]) -> str:
     if not s:
         return "-"
@@ -109,6 +109,57 @@ def fmt_dt(s: Optional[str]) -> str:
         return datetime.strptime(s, "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d %H:%M")
     except Exception:
         return s
+
+def flex_pickups(rows: list[dict]) -> Dict[str, Any]:
+    """Build a LINE Flex carousel for pickup requests."""
+    state_map = {
+        "new": "已送出",
+        "contacted": "已聯絡",
+        "scheduled": "已安排",
+        "done": "已完成",
+        "cancel": "已取消",
+    }
+
+    def short(s: str, n: int) -> str:
+        s = (s or "-").strip()
+        return s if len(s) <= n else s[:n] + "…"
+
+    bubbles = []
+    for r in rows:
+        name = r.get("name", "-")
+        st = state_map.get(r.get("state"), r.get("state") or "-")
+        t = r.get("preferred_time") or r.get("create_date") or "-"
+        addr = r.get("pickup_address") or "-"
+
+        bubble = {
+            "type": "bubble",
+            "size": "kilo",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "text", "text": str(name), "weight": "bold", "size": "lg", "wrap": True},
+                    {"type": "text", "text": f"狀態：{st}", "size": "sm", "wrap": True},
+                    {"type": "text", "text": f"時間：{short(str(t), 24)}", "size": "sm", "wrap": True},
+                    {"type": "text", "text": f"地址：{short(str(addr), 40)}", "size": "sm", "wrap": True},
+                ],
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "sm",
+                "contents": [
+                    {"type": "button", "style": "primary",
+                     "action": {"type": "postback", "label": "再安排一次", "data": "action=pickup_start"}},
+                    {"type": "button", "style": "link",
+                     "action": {"type": "postback", "label": "聯絡客服", "data": "action=contact"}},
+                ],
+            },
+        }
+        bubbles.append(bubble)
+
+    return {"type": "carousel", "contents": bubbles}
 
 def my_pickups_message(line_user_id: str) -> list[Dict[str, Any]]:
     """List recent pickup requests for this LINE user."""
@@ -124,6 +175,32 @@ def my_pickups_message(line_user_id: str) -> list[Dict[str, Any]]:
     except Exception:
         return [{"type": "text", "text": "目前無法查詢您的取貨紀錄，請稍後再試或聯絡客服。"}]
 
+    if not rows:
+        return [{"type": "text", "text": "目前查無您的取貨需求紀錄。若要安排取貨，請點選【安排取貨】。"}]
+
+    # Build Flex carousel (fallback: text)
+    try:
+        flex = flex_pickups(rows)
+        return [{"type": "flex", "altText": "我的取貨需求", "contents": flex}]
+    except Exception:
+        state_map = {
+            "new": "已送出",
+            "contacted": "已聯絡",
+            "scheduled": "已安排",
+            "done": "已完成",
+            "cancel": "已取消",
+        }
+        lines = ["📦 您最近的取貨需求（最新 5 筆）："]
+        for r in rows:
+            nm = r.get("name", "-")
+            st = state_map.get(r.get("state"), r.get("state") or "-")
+            t = (r.get("preferred_time") or "-")
+            addr = (r.get("pickup_address") or "-")
+            if len(addr) > 18:
+                addr = addr[:18] + "…"
+            lines.append("• %s｜%s｜%s｜%s" % (nm, st, t, addr))
+        lines.append("\n如需修改/取消，請聯絡客服協助。")
+        return [{"type": "text", "text": "\n".join(lines)}]
     if not rows:
         return [{"type": "text", "text": "目前查無您的取貨需求紀錄。若要安排取貨，請點選【安排取貨】。"}]
 
@@ -229,7 +306,7 @@ def handle_text(uid: str, text: str) -> list[Dict[str, Any]]:
 
 @app.get("/health")
 def health():
-    return {"ok": True, "version": "0.1.3-mvp"}
+    return {"ok": True, "version": "0.1.4-mvp"}
 
 
 @app.get("/line/health")
