@@ -22,7 +22,7 @@ CONV_TTL = int(os.getenv("CONV_TTL_SECONDS", "86400"))
 ODOO_CALLBACK_SECRET = os.getenv("ODOO_CALLBACK_SECRET", "CHANGE_ME")
 
 rds = Redis.from_url(REDIS_URL, decode_responses=True)
-app = FastAPI(title="LINE Pickup → Odoo", version="0.1.4-mvp")
+app = FastAPI(title="LINE Pickup → Odoo", version="0.1.5-mvp")
 
 def verify_sig(body: bytes, sig: str) -> bool:
     if not LINE_CHANNEL_SECRET:
@@ -161,6 +161,90 @@ def flex_pickups(rows: list[dict]) -> Dict[str, Any]:
 
     return {"type": "carousel", "contents": bubbles}
 
+def flex_pickup_detail(row: dict) -> Dict[str, Any]:
+    state_map = {
+        "new": "已送出",
+        "contacted": "已聯絡",
+        "scheduled": "已安排",
+        "done": "已完成",
+        "cancel": "已取消",
+    }
+    name = row.get("name", "-")
+    st = state_map.get(row.get("state"), row.get("state") or "-")
+    t = row.get("preferred_time") or row.get("create_date") or "-"
+    addr = row.get("pickup_address") or "-"
+    wt = row.get("waste_type_name") or "-"
+    ct = row.get("contact_text") or "-"
+    note = row.get("note") or "-"
+
+    bubble = {
+        "type": "bubble",
+        "size": "mega",
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "md",
+            "contents": [
+                {"type": "text", "text": str(name), "weight": "bold", "size": "xl", "wrap": True},
+                {"type": "text", "text": f"狀態：{st}", "size": "sm", "wrap": True},
+                {"type": "separator"},
+                {"type": "text", "text": f"時間：{t}", "size": "sm", "wrap": True},
+                {"type": "text", "text": f"地址：{addr}", "size": "sm", "wrap": True},
+                {"type": "text", "text": f"種類：{wt}", "size": "sm", "wrap": True},
+                {"type": "text", "text": f"聯絡：{ct}", "size": "sm", "wrap": True},
+                {"type": "text", "text": f"備註：{note}", "size": "sm", "wrap": True},
+            ],
+        },
+        "footer": {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "sm",
+            "contents": [
+                {"type": "button", "style": "primary",
+                 "action": {"type": "postback", "label": "我要改期/補充", "data": f"action=pickup_reschedule&id={row.get('id','')}"}},
+                {"type": "button", "style": "secondary",
+                 "action": {"type": "postback", "label": "我要取消", "data": f"action=pickup_cancel&id={row.get('id','')}"}},
+                {"type": "button", "style": "link",
+                 "action": {"type": "postback", "label": "回到清單", "data": "action=my_pickups"}},
+            ],
+        },
+    }
+    return {"type": "bubble", "contents": bubble}
+
+def pickup_detail_message(line_user_id: str, rid: str) -> list[Dict[str, Any]]:
+    """Return detail card for a pickup request id (rid), verifying ownership by line_user_id."""
+    if not rid or not str(rid).isdigit():
+        return [{"type": "text", "text": "無效的單號參數。請由「我的取貨」清單點選。"}]
+    try:
+        uid_odoo = odoo_auth()
+        rows = odoo_search_read(
+            uid_odoo,
+            domain=[["id", "=", int(rid)], ["line_user_id", "=", line_user_id]],
+            fields=["id", "name", "state", "preferred_time", "pickup_address", "create_date",
+                    "waste_type_name", "contact_text", "note"],
+            limit=1,
+            order="create_date desc",
+        )
+    except Exception:
+        return [{"type": "text", "text": "目前無法查詢詳情，請稍後再試或聯絡客服。"}]
+
+    if not rows:
+        return [{"type": "text", "text": "查無此取貨需求詳情（可能已被更新或您沒有權限）。"}]
+
+    row = rows[0]
+    try:
+        detail = flex_pickup_detail(row)
+        return [{"type": "flex", "altText": f"取貨需求 {row.get('name','')}", "contents": detail.get("contents")}]
+    except Exception:
+        # Fallback
+        return [{"type": "text", "text": f"單號：{row.get('name')}\n狀態：{row.get('state')}\n時間：{row.get('preferred_time')}\n地址：{row.get('pickup_address')}\n種類：{row.get('waste_type_name')}\n聯絡：{row.get('contact_text')}\n備註：{row.get('note') or '-'}"}]
+
+def pickup_change_request_message(rid: str, mode: str) -> list[Dict[str, Any]]:
+    # MVP: guide user to type a message; Phase 2 can create a change-request record in Odoo
+    if mode == "cancel":
+        return [{"type": "text", "text": f"收到！若您要取消單號 {rid}，請回覆：\n「取消 {rid} 原因：____」\n我們會由客服人工處理。"}]
+    return [{"type": "text", "text": f"收到！若您要改期/補充單號 {rid}，請回覆：\n「改期 {rid} 新時間：____」或「補充 {rid} 內容：____」\n我們會由客服人工處理。"}]
+
 def my_pickups_message(line_user_id: str) -> list[Dict[str, Any]]:
     """List recent pickup requests for this LINE user."""
     try:
@@ -168,7 +252,7 @@ def my_pickups_message(line_user_id: str) -> list[Dict[str, Any]]:
         rows = odoo_search_read(
             uid_odoo,
             domain=[["line_user_id", "=", line_user_id]],
-            fields=["name", "state", "preferred_time", "pickup_address", "create_date"],
+            fields=["id", "name", "state", "preferred_time", "pickup_address", "create_date"],
             limit=5,
             order="create_date desc",
         )
@@ -306,7 +390,7 @@ def handle_text(uid: str, text: str) -> list[Dict[str, Any]]:
 
 @app.get("/health")
 def health():
-    return {"ok": True, "version": "0.1.4-mvp"}
+    return {"ok": True, "version": "0.1.5-mvp"}
 
 
 @app.get("/line/health")
