@@ -177,6 +177,11 @@ def handle_text(uid: str, text: str) -> list[Dict[str, Any]]:
 def health():
     return {"ok": True, "version": "0.1.0-mvp"}
 
+
+@app.get("/line/health")
+def health_alias():
+    return health()
+
 @app.post("/webhook")
 async def webhook(request: Request, x_line_signature: Optional[str] = Header(default=None, alias="X-Line-Signature")):
     body = await request.body()
