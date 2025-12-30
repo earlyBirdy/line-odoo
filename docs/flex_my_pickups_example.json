@@ -55,6 +55,15 @@
             },
             {
               "type": "button",
+              "style": "secondary",
+              "action": {
+                "type": "postback",
+                "label": "查看詳情",
+                "data": "action=pickup_detail&id=1"
+              }
+            },
+            {
+              "type": "button",
               "style": "link",
               "action": {
                 "type": "postback",

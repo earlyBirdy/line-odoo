@@ -1,0 +1,95 @@
+{
+  "type": "flex",
+  "altText": "取貨需求 PR-00001",
+  "contents": {
+    "type": "bubble",
+    "size": "mega",
+    "body": {
+      "type": "box",
+      "layout": "vertical",
+      "spacing": "md",
+      "contents": [
+        {
+          "type": "text",
+          "text": "PR-00001",
+          "weight": "bold",
+          "size": "xl",
+          "wrap": true
+        },
+        {
+          "type": "text",
+          "text": "狀態：已送出",
+          "size": "sm",
+          "wrap": true
+        },
+        {
+          "type": "separator"
+        },
+        {
+          "type": "text",
+          "text": "時間：2026-01-05 09:30",
+          "size": "sm",
+          "wrap": true
+        },
+        {
+          "type": "text",
+          "text": "地址：台北市…",
+          "size": "sm",
+          "wrap": true
+        },
+        {
+          "type": "text",
+          "text": "種類：一般廢棄物",
+          "size": "sm",
+          "wrap": true
+        },
+        {
+          "type": "text",
+          "text": "聯絡：王小明 0912-345-678",
+          "size": "sm",
+          "wrap": true
+        },
+        {
+          "type": "text",
+          "text": "備註：-",
+          "size": "sm",
+          "wrap": true
+        }
+      ]
+    },
+    "footer": {
+      "type": "box",
+      "layout": "vertical",
+      "spacing": "sm",
+      "contents": [
+        {
+          "type": "button",
+          "style": "primary",
+          "action": {
+            "type": "postback",
+            "label": "我要改期/補充",
+            "data": "action=pickup_reschedule&id=1"
+          }
+        },
+        {
+          "type": "button",
+          "style": "secondary",
+          "action": {
+            "type": "postback",
+            "label": "我要取消",
+            "data": "action=pickup_cancel&id=1"
+          }
+        },
+        {
+          "type": "button",
+          "style": "link",
+          "action": {
+            "type": "postback",
+            "label": "回到清單",
+            "data": "action=my_pickups"
+          }
+        }
+      ]
+    }
+  }
+}
