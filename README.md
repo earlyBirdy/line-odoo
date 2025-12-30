@@ -1,4 +1,4 @@
-# GoodCan – LINE OA × Odoo「安排取貨」
+# GoodCan – LINE OA × Odoo「安排取貨」MVP Starter
 
 - LINE Rich Menu「安排取貨」→ 多步驟對話收集資料
 - Backend 驗簽/去重/狀態機（Redis）→ JSON-RPC 建立 Odoo 取貨需求單
@@ -34,3 +34,14 @@ docker compose up -d --build
 
 ## Nginx rate limit
 - `/line/webhook` 已加上 rate limit（10 req/sec per IP, burst 20）。
+
+## Odoo integration user (minimal rights)
+建議建立專用使用者（例如：`line_bot_api`），並加入群組：
+- **LINE Integration**（本模組提供）
+
+這個群組僅允許對 `waste.pickup.request`：read/create/write（不允許刪除）。
+
+
+## Detail actions
+- From my_pickups Flex card: `action=pickup_detail&id=<odoo_id>`
+- Change-request (MVP text guide): `action=pickup_reschedule&id=<odoo_id>`, `action=pickup_cancel&id=<odoo_id>`
