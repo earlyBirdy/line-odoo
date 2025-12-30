@@ -18,3 +18,9 @@ docker compose up -d --build
 ```
 - Odoo: http://localhost/
 - Backend: http://localhost/line/health
+
+
+## LINE Webhook URL
+- Set in LINE Developers Console:
+  - `https://<YOUR_DOMAIN>/line/webhook`
+- Backend supports both `/webhook` and `/line/webhook` (alias), so Nginx may rewrite or not.
