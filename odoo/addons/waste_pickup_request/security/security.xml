@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- Integration group for LINE backend user -->
+  <record id="group_line_integration" model="res.groups">
+    <field name="name">LINE Integration</field>
+    <field name="category_id" ref="base.module_category_hidden"/>
+  </record>
+
+  <!-- Record rule: integration group can access all pickup requests -->
+  <record id="rule_pickup_request_line_integration_all" model="ir.rule">
+    <field name="name">Pickup Requests: LINE Integration access all</field>
+    <field name="model_id" ref="model_waste_pickup_request"/>
+    <field name="domain_force">[(1,'=',1)]</field>
+    <field name="groups" eval="[(4, ref('waste_pickup_request.group_line_integration'))]"/>
+    <field name="perm_read" eval="1"/>
+    <field name="perm_write" eval="1"/>
+    <field name="perm_create" eval="1"/>
+    <field name="perm_unlink" eval="0"/>
+  </record>
+</odoo>
