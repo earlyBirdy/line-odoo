@@ -41,3 +41,7 @@ Backend (FastAPI) 會提供：
 - `action=pickup_start` → 啟動「安排取貨」對話流程
 - `action=contact` → 顯示客服資訊（可選）
 - `action=my_pickups` → 顯示我的取貨（第二期）
+
+
+## Nginx 防爆量（已內建）
+- `nginx/nginx.conf` 已對 `/line/webhook` 加上 `limit_req`（10 r/s, burst 20）。
