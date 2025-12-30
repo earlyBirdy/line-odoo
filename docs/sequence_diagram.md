@@ -1,4 +1,4 @@
-# Sequence Diagram – LINE「安排取貨」→ Odoo 通知 + 取貨需求單
+# Sequence Diagram – LINE「安排取貨」→ Odoo 通知 + 取貨需求單（MVP）
 
 ```mermaid
 sequenceDiagram
