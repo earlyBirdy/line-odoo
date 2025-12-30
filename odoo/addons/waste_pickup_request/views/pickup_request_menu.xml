@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- If your existing Waste Management root menu already exists, set parent to that menu instead. -->
+  <menuitem id="menu_waste_root" name="廢棄物管理" sequence="10"/>
+  <menuitem id="menu_pickup_requests" name="取貨需求" parent="menu_waste_root" action="action_waste_pickup_request" sequence="20"/>
+</odoo>

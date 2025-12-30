@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_waste_pickup_request_tree" model="ir.ui.view">
+    <field name="name">waste.pickup.request.tree</field>
+    <field name="model">waste.pickup.request</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="name"/>
+        <field name="state"/>
+        <field name="pickup_address"/>
+        <field name="preferred_time"/>
+        <field name="waste_type_name"/>
+        <field name="contact_text"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_waste_pickup_request_form" model="ir.ui.view">
+    <field name="name">waste.pickup.request.form</field>
+    <field name="model">waste.pickup.request</field>
+    <field name="arch" type="xml">
+      <form string="Pickup Request">
+        <header>
+          <field name="state" widget="statusbar" statusbar_visible="new,contacted,scheduled,done,cancel"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="name" readonly="1"/>
+            <field name="source" readonly="1"/>
+            <field name="line_user_id" readonly="1"/>
+          </group>
+          <group string="Pickup Info">
+            <field name="pickup_address"/>
+            <field name="preferred_time"/>
+            <field name="waste_type_name"/>
+          </group>
+          <group string="Contact">
+            <field name="contact_text"/>
+            <field name="note"/>
+          </group>
+        </sheet>
+        <chatter/>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_waste_pickup_request" model="ir.actions.act_window">
+    <field name="name">取貨需求</field>
+    <field name="res_model">waste.pickup.request</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+</odoo>

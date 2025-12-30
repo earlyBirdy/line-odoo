@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="seq_waste_pickup_request" model="ir.sequence">
+    <field name="name">Waste Pickup Request</field>
+    <field name="code">waste.pickup.request</field>
+    <field name="prefix">PR-</field>
+    <field name="padding">5</field>
+  </record>
+</odoo>

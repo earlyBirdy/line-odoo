@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_waste_pickup_request_user,waste.pickup.request user,model_waste_pickup_request,,1,1,1,0
