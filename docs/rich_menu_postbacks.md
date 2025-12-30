@@ -45,3 +45,8 @@ Backend (FastAPI) 會提供：
 
 ## Nginx 防爆量（已內建）
 - `nginx/nginx.conf` 已對 `/line/webhook` 加上 `limit_req`（10 r/s, burst 20）。
+
+
+## 我的取貨（Flex Message）
+- `action=my_pickups` 會回傳 Flex carousel（最多 5 筆）。
+- 範例 payload：`docs/flex_my_pickups_example.json`
