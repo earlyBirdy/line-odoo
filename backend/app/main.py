@@ -22,7 +22,7 @@ CONV_TTL = int(os.getenv("CONV_TTL_SECONDS", "86400"))
 ODOO_CALLBACK_SECRET = os.getenv("ODOO_CALLBACK_SECRET", "CHANGE_ME")
 
 rds = Redis.from_url(REDIS_URL, decode_responses=True)
-app = FastAPI(title="LINE Pickup → Odoo", version="0.1.0-mvp")
+app = FastAPI(title="LINE Pickup → Odoo", version="0.1.2-mvp")
 
 def verify_sig(body: bytes, sig: str) -> bool:
     if not LINE_CHANNEL_SECRET:
@@ -97,6 +97,14 @@ def try_dt(s: str) -> Optional[str]:
         except Exception:
             pass
     return None
+
+def contact_message() -> list[Dict[str, Any]]:
+    # TODO: replace with real hotline / working hours / URL
+    return [{"type": "text", "text": "客服聯絡方式：\n電話：02-xxxx-xxxx\n服務時間：週一至週五 09:00-18:00"}]
+
+def my_pickups_placeholder() -> list[Dict[str, Any]]:
+    # TODO (Phase 2): query Odoo by line_user_id and render list (Flex message)
+    return [{"type": "text", "text": "（第二期功能）我的取貨查詢尚未開放。"}]
 
 def start(uid: str) -> list[Dict[str, Any]]:
     conv_set(uid, {"step": "address", "data": {}})
@@ -175,7 +183,7 @@ def handle_text(uid: str, text: str) -> list[Dict[str, Any]]:
 
 @app.get("/health")
 def health():
-    return {"ok": True, "version": "0.1.0-mvp"}
+    return {"ok": True, "version": "0.1.2-mvp"}
 
 
 @app.get("/line/health")
@@ -201,8 +209,16 @@ async def webhook(request: Request, x_line_signature: Optional[str] = Header(def
 
         if ev.get("type") == "postback":
             pb = ev.get("postback") or {}
-            if (pb.get("data") or "").strip() == "action=pickup_start":
+            data = parse_postback(pb.get("data", ""))
+            action = (data.get("action") or "").strip()
+            if action == "pickup_start":
                 line_reply(token, start(uid))
+                continue
+            if action == "contact":
+                line_reply(token, contact_message())
+                continue
+            if action == "my_pickups":
+                line_reply(token, my_pickups_placeholder())
                 continue
 
         if ev.get("type") == "message":
@@ -213,6 +229,11 @@ async def webhook(request: Request, x_line_signature: Optional[str] = Header(def
                 line_reply(token, [{"type": "text", "text": "目前僅支援文字輸入（MVP）。"}])
 
     return {"ok": True}
+
+@app.post("/line/webhook")
+async def webhook_alias(request: Request, x_line_signature: Optional[str] = Header(default=None, alias="X-Line-Signature")):
+    return await webhook(request, x_line_signature)
+
 
 @app.post("/odoo/status_update")
 async def status_update(req: Request):
