@@ -1,0 +1,70 @@
+{
+  "type": "flex",
+  "altText": "我的取貨需求",
+  "contents": {
+    "type": "carousel",
+    "contents": [
+      {
+        "type": "bubble",
+        "size": "kilo",
+        "body": {
+          "type": "box",
+          "layout": "vertical",
+          "spacing": "sm",
+          "contents": [
+            {
+              "type": "text",
+              "text": "PR-00001",
+              "weight": "bold",
+              "size": "lg",
+              "wrap": true
+            },
+            {
+              "type": "text",
+              "text": "狀態：已送出",
+              "size": "sm",
+              "wrap": true
+            },
+            {
+              "type": "text",
+              "text": "時間：2026-01-05 09:30",
+              "size": "sm",
+              "wrap": true
+            },
+            {
+              "type": "text",
+              "text": "地址：台北市…",
+              "size": "sm",
+              "wrap": true
+            }
+          ]
+        },
+        "footer": {
+          "type": "box",
+          "layout": "vertical",
+          "spacing": "sm",
+          "contents": [
+            {
+              "type": "button",
+              "style": "primary",
+              "action": {
+                "type": "postback",
+                "label": "再安排一次",
+                "data": "action=pickup_start"
+              }
+            },
+            {
+              "type": "button",
+              "style": "link",
+              "action": {
+                "type": "postback",
+                "label": "聯絡客服",
+                "data": "action=contact"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
