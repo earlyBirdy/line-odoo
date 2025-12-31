@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_pickup_change_request_tree" model="ir.ui.view">
+    <field name="name">waste.pickup.change.request.tree</field>
+    <field name="model">waste.pickup.change.request</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="create_date"/>
+        <field name="pickup_id"/>
+        <field name="change_type"/>
+        <field name="requested_time"/>
+        <field name="reason"/>
+        <field name="state"/>
+        <field name="source"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_pickup_change_request_form" model="ir.ui.view">
+    <field name="name">waste.pickup.change.request.form</field>
+    <field name="model">waste.pickup.change.request</field>
+    <field name="arch" type="xml">
+      <form string="Pickup Change Request">
+        <header>
+          <button name="action_apply" type="object" string="Apply to Pickup" class="btn-primary"
+                  attrs="{'invisible': [('state','!=','new')]}"/>
+          <button name="action_reject" type="object" string="Reject" class="btn-secondary"
+                  attrs="{'invisible': [('state','!=','new')]}"/>
+          <field name="state" widget="statusbar" statusbar_visible="new,applied,rejected"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="pickup_id" required="1"/>
+            <field name="change_type" required="1"/>
+            <field name="requested_time" attrs="{'invisible':[('change_type','!=','reschedule')]}"/>
+          </group>
+          <group>
+            <field name="reason"/>
+            <field name="line_user_id" readonly="1"/>
+            <field name="source" readonly="1"/>
+          </group>
+          <group>
+            <field name="note"/>
+          </group>
+          <group string="Applied Info" attrs="{'invisible':[('state','=','new')]}">
+            <field name="applied_by" readonly="1"/>
+            <field name="applied_at" readonly="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_pickup_change_requests" model="ir.actions.act_window">
+    <field name="name">Pickup Change Requests</field>
+    <field name="res_model">waste.pickup.change.request</field>
+    <field name="view_mode">tree,form</field>
+  </record>
+
+  <menuitem id="menu_pickup_change_requests"
+            name="Pickup Change Requests"
+            parent="waste_pickup_request.menu_waste_root"
+            action="action_pickup_change_requests"
+            sequence="25"/>
+</odoo>

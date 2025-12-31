@@ -7,6 +7,7 @@
         "security/ir.model.access.csv",
     "data/sequence.xml",
     "views/pickup_request_views.xml",
+        "views/pickup_change_request_views.xml",
     "views/pickup_request_menu.xml"
   ],
   "installable": true
