@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
   <record id="view_pickup_change_request_tree" model="ir.ui.view">
-    <field name="name">waste.pickup.change.request.tree</field>
+    <field name="name">waste.pickup.change.request.list</field>
     <field name="model">waste.pickup.change.request</field>
     <field name="arch" type="xml">
-      <tree>
+      <list>
         <field name="create_date"/>
         <field name="pickup_id"/>
         <field name="change_type"/>
@@ -12,7 +12,7 @@
         <field name="reason"/>
         <field name="state"/>
         <field name="source"/>
-      </tree>
+      </list>
     </field>
   </record>
 
@@ -23,16 +23,16 @@
       <form string="Pickup Change Request">
         <header>
           <button name="action_apply" type="object" string="Apply to Pickup" class="btn-primary"
-                  attrs="{'invisible': [('state','!=','new')]}"/>
+                  modifiers="{&quot;invisible&quot;: [[&quot;state&quot;, &quot;!=&quot;, &quot;new&quot;]]}"/>
           <button name="action_reject" type="object" string="Reject" class="btn-secondary"
-                  attrs="{'invisible': [('state','!=','new')]}"/>
+                  modifiers="{&quot;invisible&quot;: [[&quot;state&quot;, &quot;!=&quot;, &quot;new&quot;]]}"/>
           <field name="state" widget="statusbar" statusbar_visible="new,applied,rejected"/>
         </header>
         <sheet>
           <group>
             <field name="pickup_id" required="1"/>
             <field name="change_type" required="1"/>
-            <field name="requested_time" attrs="{'invisible':[('change_type','!=','reschedule')]}"/>
+            <field name="requested_time" modifiers="{&quot;invisible&quot;: [[&quot;change_type&quot;, &quot;!=&quot;, &quot;reschedule&quot;]]}"/>
           </group>
           <group>
             <field name="reason"/>
@@ -42,7 +42,7 @@
           <group>
             <field name="note"/>
           </group>
-          <group string="Applied Info" attrs="{'invisible':[('state','=','new')]}">
+          <group string="Applied Info" modifiers="{&quot;invisible&quot;: [[&quot;state&quot;, &quot;=&quot;, &quot;new&quot;]]}">
             <field name="applied_by" readonly="1"/>
             <field name="applied_at" readonly="1"/>
           </group>
