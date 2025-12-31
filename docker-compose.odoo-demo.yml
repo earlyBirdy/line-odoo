@@ -4,7 +4,11 @@ services:
     environment:
       POSTGRES_USER: odoo
       POSTGRES_PASSWORD: odoo
-      # Do NOT set POSTGRES_DB=odoo (pre-creating an empty 'odoo' DB triggers 500 errors)
+      # IMPORTANT:
+      # If POSTGRES_DB is not set, Postgres will create a DB named equal to POSTGRES_USER (i.e. 'odoo').
+      # That DB is NOT an initialized Odoo database and will cause /web/database/manager to 500 (ir.http missing).
+      # So we explicitly set POSTGRES_DB=postgres to avoid creating a blank 'odoo' database.
+      POSTGRES_DB: postgres
     volumes:
       - odoo-db:/var/lib/postgresql/data
 
