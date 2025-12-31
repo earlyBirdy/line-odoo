@@ -56,3 +56,10 @@ Backend (FastAPI) 會提供：
 - `action=pickup_detail&id=<odoo_id>`：顯示單筆詳情（Flex）
 - `action=pickup_reschedule&id=<odoo_id>`：引導使用者輸入改期/補充（MVP 文字）
 - `action=pickup_cancel&id=<odoo_id>`：引導使用者輸入取消原因（MVP 文字）
+
+
+## Cancel/Reschedule guided flow (state machine)
+- Triggered from detail card buttons.
+- Confirm by replying `OK`.
+- Type `cancel` anytime to abort.
+- Backend creates `waste.pickup.change.request`; staff applies it in Odoo.
