@@ -10,3 +10,9 @@
 - Added pickup_detail endpoint behavior in backend: Odoo search_read with ownership check (line_user_id match).
 - Added MVP guidance flows for cancel/reschedule (text prompts).
 - Added `docs/flex_pickup_detail_example.json`.
+
+## v0.2.0
+- Added Odoo model `waste.pickup.change.request` with Apply/Reject.
+- LINE cancel/reschedule now uses guided state machine and creates change requests in Odoo.
+- Added views/menu + security for change requests.
+- Added docs: `docs/change_request_flow.md`.
