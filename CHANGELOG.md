@@ -1,3 +1,8 @@
+## v0.2.6
+- Add `/odoo/health` endpoint for backend→Odoo connectivity checks.
+- Add `docs/LOCAL_E2E_TESTS.md` local end-to-end test guide.
+- README links to local E2E guide.
+
 # Changelog
 
 ## v0.1.4
