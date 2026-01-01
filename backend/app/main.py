@@ -22,7 +22,7 @@ CONV_TTL = int(os.getenv("CONV_TTL_SECONDS", "86400"))
 ODOO_CALLBACK_SECRET = os.getenv("ODOO_CALLBACK_SECRET", "CHANGE_ME")
 
 rds = Redis.from_url(REDIS_URL, decode_responses=True)
-app = FastAPI(title="LINE Pickup → Odoo", version="0.1.5-mvp")
+app = FastAPI(title="LINE Pickup → Odoo", version="0.2.0-mvp")
 
 def verify_sig(body: bytes, sig: str) -> bool:
     if not LINE_CHANNEL_SECRET:
@@ -313,6 +313,94 @@ def my_pickups_message(line_user_id: str) -> list[Dict[str, Any]]:
 
 
 
+def start_change_request(uid: str, pickup_id: str, mode: str) -> list[Dict[str, Any]]:
+    # mode: cancel/reschedule/note
+    st = state_get(uid) or {}
+    st.update({"mode": "change_request", "cr_mode": mode, "cr_pickup_id": pickup_id})
+
+    if mode == "reschedule":
+        st["step"] = "cr_time"
+        state_set(uid, st)
+        return [{"type": "text", "text": "🕒 請輸入新的取貨時間（YYYY-MM-DD HH:MM，例如 2026-01-05 09:30）。\n（輸入 cancel 可取消）"}]
+
+    st["step"] = "cr_reason"
+    state_set(uid, st)
+    if mode == "cancel":
+        return [{"type": "text", "text": "🛑 取消原因是什麼？（輸入 cancel 可取消）"}]
+    return [{"type": "text", "text": "📝 請輸入要補充的內容（輸入 cancel 可取消）"}]
+
+
+def handle_change_request_step(uid: str, text: str) -> list[Dict[str, Any]]:
+    st = state_get(uid) or {}
+    cr_mode = st.get("cr_mode")
+    pickup_id = st.get("cr_pickup_id")
+    step = st.get("step")
+
+    if not cr_mode or not pickup_id:
+        st.update({"mode": None, "step": None})
+        state_set(uid, st)
+        return [{"type": "text", "text": "狀態已重置，請從「我的取貨」重新操作。"}]
+
+    if text.strip().lower() == "cancel":
+        st.update({"mode": None, "step": None, "cr_mode": None, "cr_pickup_id": None, "cr_time": None, "cr_reason": None, "cr_note": None})
+        state_set(uid, st)
+        return [{"type": "text", "text": "已取消本次操作。"}]
+
+    if cr_mode == "reschedule" and step == "cr_time":
+        dt = try_dt(text.strip())
+        if not dt:
+            return [{"type": "text", "text": "格式不正確，請輸入 YYYY-MM-DD HH:MM，例如 2026-01-05 09:30（或輸入 cancel 取消）"}]
+        st["cr_time"] = dt
+        st["step"] = "cr_reason"
+        state_set(uid, st)
+        return [{"type": "text", "text": "✅ 已記錄新時間。請輸入改期原因（可簡短）（或輸入 cancel 取消）"}]
+
+    if step == "cr_reason":
+        st["cr_reason"] = text.strip()
+        st["step"] = "cr_note"
+        state_set(uid, st)
+        return [{"type": "text", "text": "📝 可補充更多細節（沒有請輸入 - ）（或輸入 cancel 取消）"}]
+
+    if step == "cr_note":
+        st["cr_note"] = "" if text.strip() == "-" else text.strip()
+        st["step"] = "cr_confirm"
+        state_set(uid, st)
+
+        lines = ["📌 變更需求確認：",
+                 f"類型：{cr_mode}",
+                 f"單號 ID：{pickup_id}"]
+        if cr_mode == "reschedule":
+            lines.append(f"新時間：{st.get('cr_time')}")
+        lines.append(f"原因：{st.get('cr_reason') or '-'}")
+        lines.append(f"補充：{st.get('cr_note') or '-'}")
+        lines.append("回覆 OK 送出，或輸入 cancel 取消。")
+        return [{"type": "text", "text": "\n".join(lines)}]
+
+    if step == "cr_confirm":
+        if text.strip().lower() != "ok":
+            return [{"type": "text", "text": "請回覆 OK 送出，或輸入 cancel 取消。"}]
+        try:
+            uid_odoo = odoo_auth()
+            vals = {
+                "pickup_id": int(pickup_id),
+                "change_type": cr_mode,
+                "reason": st.get("cr_reason") or "",
+                "note": st.get("cr_note") or "",
+                "line_user_id": uid,
+                "source": "line",
+            }
+            if cr_mode == "reschedule" and st.get("cr_time"):
+                vals["requested_time"] = st["cr_time"]
+            cr_id = odoo_create_change_request(uid_odoo, vals)
+        except Exception:
+            return [{"type": "text", "text": "送出失敗，請稍後再試或聯絡客服。"}]
+
+        st.update({"mode": None, "step": None, "cr_mode": None, "cr_pickup_id": None, "cr_time": None, "cr_reason": None, "cr_note": None})
+        state_set(uid, st)
+        return [{"type": "text", "text": f"✅ 已送出變更需求（CR-{cr_id}）。人員將在 Odoo 後台處理。"}]
+
+    return [{"type": "text", "text": "請繼續依提示輸入，或輸入 cancel 取消。"}]
+
 def start(uid: str) -> list[Dict[str, Any]]:
     conv_set(uid, {"step": "address", "data": {}})
     return [{"type": "text", "text": "🧾 請輸入【取貨地址】（例：台北市xx路xx號）。\n（輸入 cancel 可取消）"}]
@@ -390,12 +478,32 @@ def handle_text(uid: str, text: str) -> list[Dict[str, Any]]:
 
 @app.get("/health")
 def health():
-    return {"ok": True, "version": "0.1.5-mvp"}
+    return {"ok": True, "version": "0.2.0-mvp"}
 
 
 @app.get("/line/health")
 def health_alias():
     return health()
+
+@app.get("/odoo/health")
+def odoo_health():
+    """Validate backend → Odoo connectivity (JSON-RPC auth)."""
+    try:
+        uid = odoo_auth()
+        # lightweight query: count installed modules (works after DB initialized)
+        res = odoo_jsonrpc({
+            "service": "object",
+            "method": "execute_kw",
+            "args": [ODOO_DB, uid, ODOO_PASSWORD, "ir.module.module", "search_count", [[("state", "=", "installed")]]],
+        })
+        installed = res.get("result")
+        return {"ok": True, "uid": uid, "installed_modules": installed, "odoo_url": ODOO_URL, "db": ODOO_DB}
+    except Exception as e:
+        # FastAPI will serialize this
+        from fastapi import HTTPException
+        raise HTTPException(status_code=503, detail=f"Odoo health check failed: {e}")
+
+
 
 @app.post("/webhook")
 async def webhook(request: Request, x_line_signature: Optional[str] = Header(default=None, alias="X-Line-Signature")):
@@ -448,4 +556,15 @@ async def status_update(req: Request):
     if data.get("secret") != ODOO_CALLBACK_SECRET:
         raise HTTPException(status_code=401, detail="Invalid secret")
     line_push(data.get("line_user_id", ""), [{"type": "text", "text": data.get("message", "狀態更新")}])
-    return {"ok": True}
+    return {"ok": True}def odoo_create_change_request(uid: int, vals: Dict[str, Any]) -> int:
+    res = odoo_jsonrpc({
+        "service": "object",
+        "method": "execute_kw",
+        "args": [ODOO_DB, uid, ODOO_PASSWORD, "waste.pickup.change.request", "create", [vals]],
+    })
+    rid = res.get("result")
+    if not isinstance(rid, int):
+        raise RuntimeError(f"Odoo create change request failed: {res}")
+    return rid
+
+
