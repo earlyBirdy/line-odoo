@@ -557,15 +557,14 @@ async def status_update(req: Request):
     if data.get("secret") != ODOO_CALLBACK_SECRET:
         raise HTTPException(status_code=401, detail="Invalid secret")
     line_push(data.get("line_user_id", ""), [{"type": "text", "text": data.get("message", "狀態更新")}])
-    return {"ok": True}def odoo_create_change_request(uid: int, vals: Dict[str, Any]) -> int:
-    res = odoo_jsonrpc({
-        "service": "object",
-        "method": "execute_kw",
-        "args": [ODOO_DB, uid, ODOO_PASSWORD, "waste.pickup.change.request", "create", [vals]],
-    })
+    return {"ok": True}
+    def odoo_create_change_request(uid: int, vals: Dict[str, Any]) -> int:
+        res = odoo_jsonrpc({
+            "service": "object",
+            "method": "execute_kw",
+            "args": [ODOO_DB, uid, ODOO_PASSWORD, "waste.pickup.change.request", "create", [vals]],
+        })
     rid = res.get("result")
     if not isinstance(rid, int):
         raise RuntimeError(f"Odoo create change request failed: {res}")
     return rid
-
-
