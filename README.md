@@ -55,3 +55,81 @@ docker compose up -d --build
 ## Local E2E Tests
 
 See `docs/LOCAL_E2E_TESTS.md`.
+
+
+### LINE × Odoo Pickup Integration (STAGING) ###
+
+## Purpose
+This repository is a **staging / rehearsal environment** before official production rollout.
+
+It validates the **end-to-end flow**:
+LINE user → Backend API → Odoo (Community 18)
+
+No live customer data should ever be used here.
+
+---
+
+## Architecture
+LINE OA
+→ Webhook (FastAPI)
+→ Business Logic / Validation
+→ Odoo JSON-RPC
+→ Odoo Staging Database (`odoo_staging`)
+
+---
+
+## Environments
+
+| Layer | Value |
+|------|------|
+| Backend | FastAPI (localhost:8000) |
+| Odoo | Community 18 (Docker) |
+| DB | PostgreSQL (`odoo_staging`) |
+| LINE | Sandbox / Test OA |
+
+---
+
+## Quick Start
+
+### Start Odoo + DB
+```bash
+docker compose -f docker-compose.odoo-demo.yml up -d
+```
+
+### Initialize staging DB (once)
+```bash
+docker compose exec db createdb -U odoo odoo_staging
+docker compose exec odoo odoo \
+  --db_host=db --db_port=5432 \
+  --db_user=odoo --db_password=odoo \
+  -d odoo_staging -i base --stop-after-init
+docker compose restart odoo
+```
+
+### Start Backend
+```bash
+cd backend
+uvicorn app.main:app --reload --port 8000
+```
+
+---
+
+## Health Checks
+```bash
+curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/line/health
+curl http://127.0.0.1:8000/odoo/health
+```
+
+Expected:
+```json
+{"ok":true,"db":"odoo_staging"}
+```
+
+---
+
+## Supported Flows
+- Arrange Pickup
+- View My Pickups
+- Cancel / Reschedule / Add Note
+- Odoo staff manual apply
