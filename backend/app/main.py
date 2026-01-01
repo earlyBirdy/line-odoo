@@ -22,7 +22,8 @@ CONV_TTL = int(os.getenv("CONV_TTL_SECONDS", "86400"))
 ODOO_CALLBACK_SECRET = os.getenv("ODOO_CALLBACK_SECRET", "CHANGE_ME")
 
 rds = Redis.from_url(REDIS_URL, decode_responses=True)
-app = FastAPI(title="LINE Pickup → Odoo", version="0.2.0-mvp")
+# NOTE: Keep this in sync with release zip tag.
+app = FastAPI(title="LINE Pickup → Odoo", version="0.2.7-mvp")
 
 def verify_sig(body: bytes, sig: str) -> bool:
     if not LINE_CHANNEL_SECRET:
@@ -478,7 +479,7 @@ def handle_text(uid: str, text: str) -> list[Dict[str, Any]]:
 
 @app.get("/health")
 def health():
-    return {"ok": True, "version": "0.2.0-mvp"}
+    return {"ok": True, "version": "0.2.7-mvp"}
 
 
 @app.get("/line/health")
