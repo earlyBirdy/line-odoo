@@ -1,3 +1,5 @@
+> **Note:** This document is kept for reference. For the canonical sequential runbook, use `docs/RUNBOOK.md`.
+
 # E2E Staging → Production Runbook
 
 # E2E STAGING RUNBOOK

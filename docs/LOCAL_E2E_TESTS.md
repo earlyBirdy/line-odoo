@@ -1,3 +1,5 @@
+> **Note:** This document is kept for reference. For the canonical sequential runbook, use `docs/RUNBOOK.md`.
+
 # Local E2E Test Steps (LINE → Backend → Odoo)
 
 This guide validates the full workflow locally:
