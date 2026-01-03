@@ -133,3 +133,23 @@ Expected:
 - View My Pickups
 - Cancel / Reschedule / Add Note
 - Odoo staff manual apply
+
+## Operations docs
+
+- Runbook (Dev → Staging → Prod): `docs/RUNBOOK.md`
+- Architecture: `docs/ARCHITECTURE.md`
+- Credentials & Access: `docs/CREDENTIALS_ACCESS.md`
+- Observability: `docs/OBSERVABILITY.md`
+- Backup & Restore: `docs/BACKUP_RESTORE.md`
+- Incident Playbooks: `docs/INCIDENT_PLAYBOOKS.md`
+- AWS Mapping (ECS/EC2/RDS): `docs/AWS_MAPPING_ECS_EC2_RDS.md`
+- Readiness Checklist: `docs/READINESS_CHECKLIST.md`
+
+
+## Quick start (dev)
+
+```bash
+./scripts/setup_dev_env.sh
+docker compose up -d --build
+curl -s http://127.0.0.1/health
+```
