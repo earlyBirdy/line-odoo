@@ -153,3 +153,7 @@ Expected:
 docker compose up -d --build
 curl -s http://127.0.0.1/health
 ```
+
+
+## Infrastructure (Terraform-ready)
+See `docs/TERRAFORM_RESOURCES.md` for a deployable resource inventory (names, tags, SG rules, IAM policies).
