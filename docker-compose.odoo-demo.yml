@@ -1,29 +1,61 @@
+version: "3.9"
+
 services:
   db:
     image: postgres:15
     environment:
       POSTGRES_USER: odoo
       POSTGRES_PASSWORD: odoo
-      # IMPORTANT:
-      # If POSTGRES_DB is not set, Postgres will create a DB named equal to POSTGRES_USER (i.e. 'odoo').
-      # That DB is NOT an initialized Odoo database and will cause /web/database/manager to 500 (ir.http missing).
-      # So we explicitly set POSTGRES_DB=postgres to avoid creating a blank 'odoo' database.
       POSTGRES_DB: postgres
     volumes:
-      - odoo-db:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    volumes:
+      - redisdata:/data
 
   odoo:
     image: odoo:18
     depends_on:
-      - db
-    ports:
-      - "8069:8069"
-    volumes:
-      - ./odoo/addons:/mnt/extra-addons
+      db:
+        condition: service_started
     environment:
-      - HOST=db
-      - USER=odoo
-      - PASSWORD=odoo
+      HOST: db
+      USER: odoo
+      PASSWORD: odoo
+    volumes:
+      - odoo_data:/var/lib/odoo
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/web/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: line-odoo-backend
+    build:
+      context: ./backend
+    environment:
+      ODOO_BASE_URL: http://odoo:8069
+    depends_on:
+      odoo:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+
+  nginx:
+    image: nginx:1.25
+    depends_on:
+      backend:
+        condition: service_started
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/health.conf:/etc/nginx/conf.d/health.conf:ro
+    ports:
+      - "80:80"
 
 volumes:
-  odoo-db:
+  pgdata:
+  redisdata:
+  odoo_data:

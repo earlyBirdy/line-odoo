@@ -7,6 +7,54 @@ locals {
   }
 }
 
+
+
+module "alb_logs" {
+  source                = "../../modules/s3_logs"
+  name                  = local.name
+  bucket_name           = "${local.name}-prod-alb-logs"
+  enable_alb_log_delivery = true
+  force_destroy         = var.force_destroy_log_bucket
+  tags                  = local.tags
+encryption_mode        = "SSE-S3"
+deny_unencrypted_puts  = false
+kms_alias_suffix       = "alb-logs"
+}
+
+
+module "waf_logs" {
+  source        = "../../modules/s3_logs"
+  name          = local.name
+  bucket_name   = "${local.name}-prod-waf-logs"
+  enable_alb_log_delivery = false
+  force_destroy = var.force_destroy_log_bucket
+  tags          = local.tags
+  encryption_mode       = "SSE-KMS"
+  deny_unencrypted_puts = true
+  kms_key_arn           = module.waf_kms.kms_key_arn
+  kms_alias_suffix      = "waf-logs"
+}
+
+module "waf_kms" {
+  source               = "../../modules/kms_firehose_s3"
+  name                 = local.name
+  tags                 = local.tags
+  bucket_name          = "${local.name}-prod-waf-logs"
+  s3_prefix            = var.waf_log_prefix
+  firehose_stream_name = "${local.name}-waf-logs"
+  delivery_role_name   = "${local.name}-waf-firehose-role"
+  kms_alias_suffix     = "waf-logs"
+}
+
+
+module "acm" {
+  source           = "../../modules/acm_route53"
+  name             = local.name
+  hosted_zone_name = var.hosted_zone_name
+  domains          = [var.domain_api, var.domain_odoo]
+  tags             = local.tags
+}
+
 module "vpc" {
   source     = "../../modules/vpc"
   name       = local.name
@@ -68,15 +116,51 @@ module "alb" {
   name              = local.name
   vpc_id            = module.vpc.vpc_id
   public_subnet_ids = module.vpc.public_subnet_ids
-  sg_alb_id         = module.sg.sg_alb_id
+  alb_sg_id         = module.sg.sg_alb_id
+  acm_certificate_arn = module.acm.certificate_arn
   tags              = local.tags
+  enable_access_logs = true
+  access_logs_bucket = module.alb_logs.bucket_name
+  access_logs_prefix = var.alb_log_prefix
 }
+
+module "waf" {
+  source = "../../modules/waf"
+  name   = local.name
+  alb_arn = module.alb.alb_arn
+  webhook_path = var.waf_webhook_path
+  webhook_rate_limit = var.waf_webhook_rate_limit
+  tags   = local.tags
+  log_bucket_arn  = module.waf_logs.bucket_arn
+  log_bucket_name = module.waf_logs.bucket_name
+  log_prefix      = var.waf_log_prefix
+  redact_headers        = var.waf_redact_headers
+  redact_query_string   = var.waf_redact_query_string
+  redact_uri_path       = var.waf_redact_uri_path
+  redact_method         = var.waf_redact_method
+
+  log_bucket_kms_key_arn = module.waf_kms.kms_key_arn
+  create_kms_key         = false
+}
+
 
 module "iam" {
   source      = "../../modules/iam"
   name        = local.name
   secret_arns = var.secret_arns
   tags        = local.tags
+}
+
+
+module "github_oidc" {
+  source            = "../../modules/github_oidc"
+  role_name         = var.github_oidc_role_name
+  github_org        = var.github_org
+  github_repo       = var.github_repo
+  github_branch     = var.github_branch
+  tf_state_bucket   = var.tf_state_bucket
+  tf_lock_table_arn = var.tf_lock_table_arn
+  tags              = local.tags
 }
 
 module "ecs" {
@@ -105,6 +189,17 @@ module "ecs" {
 
   desired_count          = var.desired_count
   tags                   = local.tags
+}
+
+
+module "route53_alias" {
+  source         = "../../modules/route53_alias"
+  hosted_zone_id = module.acm.hosted_zone_id
+  records = var.create_route53_alias_records ? [
+    { name = var.domain_api,  alb_dns_name = module.alb.alb_dns_name, alb_zone_id = module.alb.alb_zone_id },
+    { name = var.domain_odoo, alb_dns_name = module.alb.alb_dns_name,      alb_zone_id = module.alb.alb_zone_id }
+  ] : []
+  tags = local.tags
 }
 
 output "alb_dns_name" { value = module.alb.alb_dns_name }

@@ -31,3 +31,34 @@ odoo_env = [
 ]
 
 secret_arns = []
+
+# --- HTTPS / ACM ---
+acm_certificate_arn = "arn:aws:acm:REGION:ACCOUNT:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# --- GitHub OIDC ---
+github_oidc_role_name = "stg-line-odoo-gh-terraform-role"
+github_org = "YOUR_GITHUB_ORG"
+github_repo = "YOUR_GITHUB_REPO"
+github_branch = "main"
+
+# Remote state (must match backend.tf)
+tf_state_bucket = "your-tfstate-bucket-name"
+tf_lock_table_arn = "arn:aws:dynamodb:REGION:ACCOUNT:table/your-tf-lock-table"
+
+# --- WAF ---
+waf_webhook_path = "/line/webhook"
+waf_webhook_rate_limit = 300
+
+hosted_zone_name = "example.com."
+
+domain_api = "api.example.com"
+
+domain_odoo = "odoo.example.com"
+
+create_route53_alias_records = true
+
+waf_log_prefix = "waf/stg"
+
+alb_log_prefix = "alb/stg"
+
+force_destroy_log_bucket = false
