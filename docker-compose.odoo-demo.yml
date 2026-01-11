@@ -17,13 +17,20 @@ services:
 
   odoo:
     image: odoo:18
-    depends_on:
-      db:
-        condition: service_started
     environment:
       HOST: db
       USER: odoo
       PASSWORD: odoo
+      DB_NAME: odoo_staging
+    command: >
+      odoo
+      --db_host=db
+      --db_user=odoo
+      --db_password=odoo
+      --database=odoo_staging
+    depends_on:
+      db:
+        condition: service_started
     volumes:
       - odoo_data:/var/lib/odoo
     healthcheck:
@@ -38,6 +45,7 @@ services:
       context: ./backend
     environment:
       ODOO_BASE_URL: http://odoo:8069
+      ODOO_DB: odoo_staging
     depends_on:
       odoo:
         condition: service_healthy
