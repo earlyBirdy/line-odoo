@@ -1,7 +1,5 @@
 # Runbook (Dev → Staging → Prod)
 
-Last updated: 2026-01-03
-
 This repository contains three main components:
 
 - **LINE webhook + business logic**: `backend/` (FastAPI)
@@ -201,3 +199,137 @@ curl -s https://<prod-domain>/odoo/health | jq
 ## 5) Incident response
 
 Use `docs/INCIDENT_PLAYBOOKS.md`.
+
+---
+
+## Operating Principles
+
+- Prefer **small, regular updates** over large infrequent changes
+- Health checks + UAT are the **only gates**
+- If the checklist passes, the change is approved
+- If any item fails, stop and fix
+
+---
+
+## Monthly Update Checklist (Mandatory)
+
+This checklist must be executed **once per month** or whenever dependency updates
+are merged.
+
+### Monthly Update Checklist
+
+- [ ] **Dependabot PRs reviewed**
+  - Dependency updates reviewed individually
+  - CI checks passing
+  - No unreviewed auto-merges
+
+- [ ] **Containers rebuilt**
+  ```bash
+  docker compose build
+  ```
+  Images rebuilt with no errors.
+
+- [ ] **Health checks green**
+  ```bash
+  curl http://localhost/health
+  curl http://localhost:8000/health
+  curl http://localhost:8000/odoo/health
+  ```
+  All endpoints must return OK.
+
+- [ ] **UAT cases pass**
+  - Execute relevant cases in `UAT_Execution_Worksheet.xlsx`
+  - All impacted cases marked **PASS**
+  - Evidence attached where applicable
+
+- [ ] **Tag release**
+  ```bash
+  git tag vX.Y.Z
+  git push --tags
+  ```
+
+- [ ] **Update Readiness Matrix**
+  - `Enterprise_Readiness_Matrix.xlsx` updated
+  - Status reflects current state
+  - Acceptance criteria unchanged or re-validated
+
+### Rule
+
+> **If all checklist items are complete, the update is approved.**  
+> **If any item fails, the update is blocked until resolved.**
+
+No additional approval layers are required.
+
+---
+
+## Quarterly Odoo Upgrade Checklist (Controlled)
+
+Odoo upgrades are **high-impact changes** and must be handled separately
+from monthly updates.
+
+Frequency: **Quarterly maximum**, or for critical security fixes.
+
+### Quarterly Odoo Upgrade Checklist
+
+- [ ] **Upgrade scoped**
+  - Target Odoo version defined
+  - Release notes reviewed
+  - Breaking changes identified
+
+- [ ] **Staging-only upgrade**
+  - Upgrade performed in staging first
+  - Production remains untouched
+
+- [ ] **Database backup verified**
+  - Pre-upgrade backup completed
+  - Restore procedure verified
+
+- [ ] **Module compatibility checked**
+  - Custom modules reviewed
+  - Third-party modules verified
+
+- [ ] **Full UAT executed**
+  - All UAT cases re-run
+  - Failure & edge cases included
+  - No regressions allowed
+
+- [ ] **Performance sanity check**
+  - Startup time acceptable
+  - Core flows responsive
+
+- [ ] **Rollback plan confirmed**
+  - Previous image available
+  - DB restore tested
+  - Downgrade path understood
+
+- [ ] **Business sign-off**
+  - Business owner approval recorded
+  - Ops approval recorded
+
+### Rule
+
+> **No Odoo upgrade is promoted to production without full UAT PASS and rollback validation.**
+
+---
+
+## Incident Handling (Reference)
+
+If an update causes instability:
+
+1. Roll back to previous tagged release
+2. Restore database if required
+3. Document root cause
+4. Re-run UAT before re-attempt
+
+---
+
+## Document Control
+
+- This runbook is authoritative
+- Changes require peer review
+- Exceptions are not allowed without written approval
+
+---
+
+**Status:** Active  
+**Applies to:** Staging and Production
